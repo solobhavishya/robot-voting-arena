@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, runTransaction } from "firebase/firestore";
+import { collection, doc, onSnapshot, runTransaction, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import confetti from "canvas-confetti";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const robotImages = {
   arduino_basix: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500&q=80",
@@ -21,6 +21,10 @@ export default function StudentView() {
   const [projects, setProjects] = useState([]);
   const [appStatus, setAppStatus] = useState("waiting");
   const [hasVoted, setHasVoted] = useState(localStorage.getItem("votedFor") || null);
+  
+  // New States for Feedback
+  const [feedback, setFeedback] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(localStorage.getItem("feedbackSubmitted") === "true");
 
   useEffect(() => {
     const cursor = document.getElementById('custom-cursor');
@@ -73,6 +77,22 @@ export default function StudentView() {
     } catch (e) { console.error("Voting failed: ", e); }
   };
 
+  // Feedback Submission Handler
+  const submitFeedback = async () => {
+    if (!feedback.trim()) return;
+    try {
+      await addDoc(collection(db, "feedbacks"), {
+        projectId: hasVoted,
+        text: feedback,
+        timestamp: new Date()
+      });
+      setFeedbackSubmitted(true);
+      localStorage.setItem("feedbackSubmitted", "true");
+    } catch (err) {
+      console.error("Feedback failed: ", err);
+    }
+  };
+
   if (appStatus === "waiting") {
     return (
       <div className="flex h-screen items-center justify-center bg-[#050505] overflow-hidden relative">
@@ -108,9 +128,7 @@ export default function StudentView() {
             Final <span className="text-[#FFD700]">Results</span>
           </motion.h1>
 
-          {/* Responsive Top 3 Podium */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-16 md:items-end">
-            {/* 2nd Place */}
             {second && (
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="w-full md:w-1/3 order-2 md:order-1 border border-[#C0C0C0] bg-[#C0C0C0]/10 p-6 rounded-2xl flex flex-col items-center shadow-[0_0_20px_rgba(192,192,192,0.15)]">
                 <div className="text-2xl mb-2">🥈</div>
@@ -120,7 +138,6 @@ export default function StudentView() {
               </motion.div>
             )}
             
-            {/* 1st Place WINNER */}
             {winner && (
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8 }} className="w-full md:w-[40%] order-1 md:order-2 border-2 border-[#FFD700] bg-[#FFD700]/20 p-8 rounded-3xl flex flex-col items-center shadow-[0_0_40px_rgba(255,215,0,0.3)] z-10 relative">
                 <div className="absolute -top-6 text-5xl">👑</div>
@@ -131,7 +148,6 @@ export default function StudentView() {
               </motion.div>
             )}
 
-            {/* 3rd Place */}
             {third && (
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="w-full md:w-1/3 order-3 md:order-3 border border-[#CD7F32] bg-[#CD7F32]/10 p-6 rounded-2xl flex flex-col items-center shadow-[0_0_20px_rgba(205,127,50,0.15)]">
                 <div className="text-2xl mb-2">🥉</div>
@@ -142,7 +158,6 @@ export default function StudentView() {
             )}
           </div>
 
-          {/* Full Leaderboard List */}
           <div className="text-left mt-8 max-w-2xl mx-auto">
             <h3 className="text-zinc-500 font-mono text-sm tracking-[0.2em] mb-6 uppercase border-b border-zinc-800 pb-4 text-center md:text-left">Complete System Records</h3>
             <div className="flex flex-col gap-3">
@@ -172,7 +187,7 @@ export default function StudentView() {
     );
   }
 
-  // --- STANDARD VOTING SCREEN ---
+  // --- STANDARD VOTING SCREEN WITH FEEDBACK ---
   return (
     <div className="min-h-screen bg-[#050505] text-white p-4 md:p-8 pb-32 relative overflow-hidden selection:bg-[#00f5d4] selection:text-black">
       <div id="custom-cursor" className="custom-cursor hidden md:block"></div>
@@ -191,20 +206,52 @@ export default function StudentView() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((project, i) => (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={project.id} className={`glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-5 group relative overflow-hidden ${hasVoted === project.id ? '!border-[#00f5d4] !bg-[#00f5d4]/5 shadow-[0_0_30px_rgba(0,245,212,0.15)]' : ''}`}>
-              <div className="w-full sm:w-28 h-40 sm:h-28 shrink-0 rounded-xl overflow-hidden border border-white/10 relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={project.id} className={`glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-5 group relative overflow-hidden ${hasVoted === project.id ? '!border-[#00f5d4] !bg-[#00f5d4]/5 shadow-[0_0_30px_rgba(0,245,212,0.15)] items-start' : ''}`}>
+              
+              <div className={`w-full sm:w-28 shrink-0 rounded-xl overflow-hidden border border-white/10 relative ${hasVoted === project.id ? 'h-28 sm:h-full sm:min-h-[140px]' : 'h-40 sm:h-28'}`}>
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors z-10"></div>
                 <img src={robotImages[project.id]} alt="" className="w-full h-full object-cover transform transition-transform duration-700 ease-out group-hover:scale-110" loading="lazy" decoding="async" />
               </div>
+
               <div className="flex-1 w-full text-center sm:text-left flex flex-col justify-center">
                 <span className="text-[#00f5d4]/60 font-bold text-xs tracking-widest mb-1 font-mono">0{i + 1}</span>
                 <h3 className="font-bold text-xl uppercase tracking-tight text-white group-hover:text-[#00f5d4] transition-colors mb-3 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>{project.name}</h3>
+                
                 {hasVoted === project.id ? (
-                  <div className="bg-[#00f5d4] text-black py-2.5 px-4 rounded-lg text-xs font-bold tracking-[0.1em] text-center shadow-[0_0_15px_rgba(0,245,212,0.4)] w-full font-mono">AUTHORIZED</div>
+                  <div className="flex flex-col gap-3 w-full">
+                    <div className="bg-[#00f5d4] text-black py-2 px-4 rounded-lg text-xs font-bold tracking-[0.1em] text-center shadow-[0_0_15px_rgba(0,245,212,0.4)] w-full font-mono">
+                      AUTHORIZED
+                    </div>
+                    
+                    {/* INLINE FEEDBACK SYSTEM */}
+                    <AnimatePresence>
+                      {!feedbackSubmitted ? (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-2 mt-2">
+                          <p className="text-zinc-400 text-xs font-mono uppercase tracking-widest">Optional Transmission:</p>
+                          <textarea 
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            placeholder="What did you love about this robot?"
+                            className="w-full bg-black/40 border border-[#00f5d4]/30 rounded-lg p-3 text-sm text-[#00f5d4] placeholder:text-[#00f5d4]/30 focus:outline-none focus:border-[#00f5d4] font-mono resize-none transition-colors"
+                            rows="2"
+                          />
+                          <button onClick={submitFeedback} className="bg-transparent border border-[#00f5d4]/50 text-[#00f5d4] hover:bg-[#00f5d4] hover:text-black py-2 rounded-lg text-xs font-bold tracking-[0.1em] transition-all font-mono">
+                            TRANSMIT FEEDBACK
+                          </button>
+                        </motion.div>
+                      ) : (
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center text-[#00f5d4] text-xs font-mono tracking-widest mt-2 bg-[#00f5d4]/10 border border-[#00f5d4]/30 py-2 rounded-lg">
+                          ✓ TRANSMISSION RECEIVED
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                  </div>
                 ) : (
                   <button onClick={() => handleVote(project.id)} disabled={hasVoted} className="py-2.5 px-4 rounded-lg text-xs font-bold tracking-[0.1em] transition-all w-full bg-white/5 border border-white/10 text-white hover:bg-[#00f5d4] hover:text-black hover:border-[#00f5d4] hover:shadow-[0_0_20px_rgba(0,245,212,0.3)] active:scale-95 font-mono">AUTHORIZE VOTE</button>
                 )}
               </div>
+
             </motion.div>
           ))}
         </div>
