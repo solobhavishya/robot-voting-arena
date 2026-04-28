@@ -91,6 +91,13 @@ export default function StudentView() {
     }
   };
 
+  // Filter out Arduino and Otto robots
+  const displayProjects = projects.filter(project => {
+    const name = (project.name || "").toLowerCase();
+    const id = (project.id || "").toLowerCase();
+    return !name.includes("arduino") && !name.includes("otto") && !id.includes("arduino") && !id.includes("otto");
+  });
+
   if (appStatus === "waiting") {
     return (
       <div className="flex h-screen items-center justify-center bg-[#050505] overflow-hidden relative">
@@ -106,7 +113,7 @@ export default function StudentView() {
 
   // --- THE MASTERPIECE FINAL RESULTS SCREEN ---
   if (appStatus === "ended") {
-    const sortedProjects = [...projects].sort((a, b) => b.voteCount - a.voteCount);
+    const sortedProjects = [...displayProjects].sort((a, b) => b.voteCount - a.voteCount);
     const [winner, second, third] = sortedProjects;
 
     const getRankStyle = (index) => {
@@ -203,7 +210,7 @@ export default function StudentView() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map((project, i) => (
+          {displayProjects.map((project, i) => (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} key={project.id} className={`glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-5 group relative overflow-hidden ${hasVoted === project.id ? '!border-[#00f5d4] !bg-[#00f5d4]/5 shadow-[0_0_30px_rgba(0,245,212,0.15)] items-start' : ''}`}>
               
               <div className={`w-full sm:w-28 shrink-0 rounded-xl overflow-hidden border border-white/10 relative ${hasVoted === project.id ? 'h-28 sm:h-full sm:min-h-[140px]' : 'h-40 sm:h-28'}`}>
@@ -212,7 +219,9 @@ export default function StudentView() {
               </div>
 
               <div className="flex-1 w-full text-center sm:text-left flex flex-col justify-center">
-                <span className="text-[#00f5d4]/60 font-bold text-xs tracking-widest mb-1 font-mono">0{i + 1}</span>
+                <span className="text-[#00f5d4]/60 font-bold text-xs tracking-widest mb-1 font-mono">
+                  {(i + 1).toString().padStart(2, '0')}
+                </span>
                 <h3 className="font-bold text-xl uppercase tracking-tight text-white group-hover:text-[#00f5d4] transition-colors mb-3 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>{project.name}</h3>
                 
                 {hasVoted === project.id ? (
