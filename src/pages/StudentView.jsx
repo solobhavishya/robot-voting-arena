@@ -8,7 +8,6 @@ const robotImages = {
   fire_fighting: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=500&q=80",
   food_serving: "https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&w=500&q=80",
   floor_cleaner: "https://images.unsplash.com/photo-1589254065878-42c9da997008?auto=format&fit=crop&w=500&q=80",
-  water_cleaner: "https://images.unsplash.com/photo-1516192518150-0d8fee5425e3?auto=format&fit=crop&w=500&q=80",
   high_beam: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=500&q=80",
   smart_dustbin: "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?auto=format&fit=crop&w=500&q=80",
   home_automation: "https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?auto=format&fit=crop&w=500&q=80",
@@ -91,11 +90,19 @@ export default function StudentView() {
     }
   };
 
-  // Filter out Arduino and Otto robots
+  // Filter out Arduino, Otto, and Water Cleaner robots
   const displayProjects = projects.filter(project => {
     const name = (project.name || "").toLowerCase();
     const id = (project.id || "").toLowerCase();
-    return !name.includes("arduino") && !name.includes("otto") && !id.includes("arduino") && !id.includes("otto");
+    
+    return (
+      !name.includes("arduino") && 
+      !name.includes("otto") && 
+      !name.includes("water cleaning") && 
+      !id.includes("arduino") && 
+      !id.includes("otto") &&
+      id !== "water_cleaner"
+    );
   });
 
   if (appStatus === "waiting") {
